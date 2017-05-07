@@ -26,7 +26,7 @@ func TestExternalMech(t *testing.T) {
 		serverErr string
 	}{
 		{"jack", "", ""},
-		{"jane", "sasl mechanism EXTERNAL: failed to receive challenge: context canceled", "sasl mechanism EXTERNAL: unable to start exchange: invalid credentials"},
+		{"jane", "context canceled", "sasl mechanism EXTERNAL: unable to start exchange: invalid credentials"},
 	}
 
 	for _, test := range tests {

@@ -28,7 +28,7 @@ func TestAnonymousMech(t *testing.T) {
 		serverErr string
 	}{
 		{"jack@mcjack", "", ""},
-		{"jack", "sasl mechanism ANONYMOUS: failed to receive challenge: context canceled", "sasl mechanism ANONYMOUS: unable to start exchange: must provide an email address"},
+		{"jack", "context canceled", "sasl mechanism ANONYMOUS: unable to start exchange: must provide an email address"},
 	}
 
 	for _, test := range tests {

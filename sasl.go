@@ -7,8 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 )
 
 // ClientMech handles authenticating with a server.
@@ -37,34 +35,6 @@ type ServerMech interface {
 	Completed() bool
 }
 
-func newError(msg string, inner error) *Error {
-	return &Error{
-		Msg:   msg,
-		Inner: inner,
-	}
-}
-
-var errUnexpectedChallenge = errors.New("unexpected challenge")
-var errUnexpectedResponse = errors.New("unexpected response")
-
-// Error is always the type of error returned from ConverseAsClient and
-// ConverseAsServer.
-type Error struct {
-	Msg   string
-	Inner error
-}
-
-func (e *Error) Error() string {
-	s := e.Msg
-	if e.Inner != nil {
-		s += ": " + e.Inner.Error()
-	}
-	return s
-}
-
-// AuthCallback passes data to the transport and receives the next piece.
-type AuthCallback func([]byte) ([]byte, error)
-
 // ConverseAsClient conducts an authentication exchange as a client.
 func ConverseAsClient(ctx context.Context, mech ClientMech, incoming <-chan []byte, outgoing chan<- []byte) error {
 	mechName, response, err := mech.Start(ctx)
@@ -77,13 +47,13 @@ func ConverseAsClient(ctx context.Context, mech ClientMech, incoming <-chan []by
 		select {
 		case outgoing <- response:
 		case <-ctx.Done():
-			return newError(fmt.Sprintf("sasl mechanism %s: failed to send response", mechName), ctx.Err())
+			return ctx.Err()
 		}
 
 		select {
 		case challenge = <-incoming:
 		case <-ctx.Done():
-			return newError(fmt.Sprintf("sasl mechanism %s: failed to receive challenge", mechName), ctx.Err())
+			return ctx.Err()
 		}
 
 		response, err = mech.Next(ctx, challenge)
@@ -110,7 +80,7 @@ func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, inc
 		select {
 		case outgoing <- challenge:
 		case <-ctx.Done():
-			return newError(fmt.Sprintf("sasl mechanism %s: failed to send challenge", mechName), ctx.Err())
+			return ctx.Err()
 		}
 
 		if mech.Completed() {
@@ -120,7 +90,7 @@ func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, inc
 		select {
 		case response = <-incoming:
 		case <-ctx.Done():
-			return newError(fmt.Sprintf("sasl mechanism %s: failed to receive response", mechName), ctx.Err())
+			return ctx.Err()
 		}
 
 		challenge, err = mech.Next(ctx, response)
@@ -132,24 +102,27 @@ func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, inc
 	return nil
 }
 
-func readAll(r io.Reader) ([]byte, error) {
-	return ioutil.ReadAll(r)
+func newError(msg string, inner error) *Error {
+	return &Error{
+		Msg:   msg,
+		Inner: inner,
+	}
 }
 
-func writeAll(w io.Writer, b []byte) error {
-	t := 0
-	var n int
-	var err error
-	for {
-		n, err = w.Write(b)
-		if err != nil {
-			return err
-		}
-		t += n
-		if t >= n {
-			return nil
-		}
+var errUnexpectedChallenge = errors.New("unexpected challenge")
+var errUnexpectedResponse = errors.New("unexpected response")
 
-		b = b[n:]
+// Error is always the type of error returned from ConverseAsClient and
+// ConverseAsServer.
+type Error struct {
+	Msg   string
+	Inner error
+}
+
+func (e *Error) Error() string {
+	s := e.Msg
+	if e.Inner != nil {
+		s += ": " + e.Inner.Error()
 	}
+	return s
 }

@@ -32,8 +32,8 @@ func TestPlainMech(t *testing.T) {
 	}{
 		{"", "jack", "mcjack", "", ""},
 		{"jane", "jack", "mcjack", "", ""},
-		{"", "jack", "mcjac", "sasl mechanism PLAIN: failed to receive challenge: context canceled", "sasl mechanism PLAIN: unable to start exchange: invalid username or password"},
-		{"joe", "jack", "mcjack", "sasl mechanism PLAIN: failed to receive challenge: context canceled", "sasl mechanism PLAIN: unable to start exchange: cannot impersonate 'joe'"},
+		{"", "jack", "mcjac", "context canceled", "sasl mechanism PLAIN: unable to start exchange: invalid username or password"},
+		{"joe", "jack", "mcjack", "context canceled", "sasl mechanism PLAIN: unable to start exchange: cannot impersonate 'joe'"},
 	}
 
 	for _, test := range tests {

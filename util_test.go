@@ -21,8 +21,7 @@ func runClientServerTest(t *testing.T, test *clientServerTest) {
 }
 
 func runConversation(client sasl.ClientMech, server sasl.ServerMech) (error, error) {
-	clientToServer := make(chan []byte, 1)
-	serverToClient := make(chan []byte, 1)
+	messages := make(chan []byte, 1)
 
 	clientErr := make(chan error, 1)
 	serverErr := make(chan error, 1)
@@ -30,7 +29,7 @@ func runConversation(client sasl.ClientMech, server sasl.ServerMech) (error, err
 	cancelCtx, cancel := context.WithCancel(context.Background())
 
 	go func() {
-		err := sasl.ConverseAsClient(cancelCtx, client, serverToClient, clientToServer)
+		err := sasl.ConverseAsClient(cancelCtx, client, messages, messages)
 		if err != nil {
 			cancel()
 		}
@@ -40,8 +39,8 @@ func runConversation(client sasl.ClientMech, server sasl.ServerMech) (error, err
 	go func() {
 		var err error
 		select {
-		case b := <-clientToServer:
-			err = sasl.ConverseAsServer(cancelCtx, server, b, clientToServer, serverToClient)
+		case b := <-messages:
+			err = sasl.ConverseAsServer(cancelCtx, server, b, messages, messages)
 			if err != nil {
 				cancel()
 			}
