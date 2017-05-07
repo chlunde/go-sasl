@@ -66,7 +66,7 @@ func (e *Error) Error() string {
 type AuthCallback func([]byte) ([]byte, error)
 
 // ConverseAsClient conducts an authentication exchange as a client.
-func ConverseAsClient(ctx context.Context, mech ClientMech, incoming, outgoing chan []byte) error {
+func ConverseAsClient(ctx context.Context, mech ClientMech, incoming <-chan []byte, outgoing chan<- []byte) error {
 	mechName, response, err := mech.Start(ctx)
 	if err != nil {
 		return newError(fmt.Sprintf("sasl mechanism %s: unable to start exchange", mechName), err)
@@ -100,7 +100,7 @@ func ConverseAsClient(ctx context.Context, mech ClientMech, incoming, outgoing c
 }
 
 // ConverseAsServer conducts an authentication exchange as a server.
-func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, incoming, outgoing chan []byte) error {
+func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, incoming <-chan []byte, outgoing chan<- []byte) error {
 	mechName, challenge, err := mech.Start(ctx, response)
 	if err != nil {
 		return newError(fmt.Sprintf("sasl mechanism %s: unable to start exchange", mechName), err)

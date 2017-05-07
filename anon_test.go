@@ -11,7 +11,7 @@ import (
 	"github.com/craiggwilson/go-sasl"
 )
 
-func TestAnonMech(t *testing.T) {
+func TestAnonymousMech(t *testing.T) {
 
 	verifier := func(_ context.Context, trace string) error {
 
@@ -28,29 +28,17 @@ func TestAnonMech(t *testing.T) {
 		serverErr string
 	}{
 		{"jack@mcjack", "", ""},
-		{"jack", "", "sasl mechanism ANONYMOUS: unable to start exchange: must provide an email address"},
+		{"jack", "sasl mechanism ANONYMOUS: failed to receive challenge: context canceled", "sasl mechanism ANONYMOUS: unable to start exchange: must provide an email address"},
 	}
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.trace), func(t *testing.T) {
-			client := sasl.NewAnonymousClientMech(test.trace)
-			server := sasl.NewAnonymousServerMech(verifier)
-
-			clientErr, serverErr := runClientServerTest(client, server)
-			if test.clientErr != "" {
-				if clientErr == nil {
-					t.Fatalf("expected a client error, but got none")
-				} else if test.clientErr != clientErr.Error() {
-					t.Fatalf("expected client error to be '%s', but got '%v'", test.clientErr, clientErr.Error())
-				}
-			}
-			if test.serverErr != "" {
-				if serverErr == nil {
-					t.Fatalf("expected a server error, but got none")
-				} else if test.serverErr != serverErr.Error() {
-					t.Fatalf("expected server error to be '%s', but got '%v'", test.serverErr, serverErr.Error())
-				}
-			}
+			runClientServerTest(t, &clientServerTest{
+				client:    sasl.NewAnonymousClientMech(test.trace),
+				server:    sasl.NewAnonymousServerMech(verifier),
+				clientErr: test.clientErr,
+				serverErr: test.serverErr,
+			})
 		})
 	}
 }

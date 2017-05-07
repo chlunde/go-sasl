@@ -37,7 +37,8 @@ func (m *anonymousClientMech) Completed() bool {
 	return true
 }
 
-// Get trace information from clients logging in anonymously.
+// AnonymousVerifier is a callback to verify that the trace identifier is
+// ok to use.
 type AnonymousVerifier func(ctx context.Context, trace string) error
 
 // NewAnonymousServerMech creates a ServerMech to act as the server side of
