@@ -33,7 +33,6 @@ func runClientServerTest(client sasl.ClientMech, server sasl.ServerMech) (error,
 			}
 		case <-cancelCtx.Done():
 			err = cancelCtx.Err()
-			cancel()
 		}
 		serverErr <- err
 	}()

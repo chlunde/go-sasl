@@ -67,7 +67,6 @@ type AuthCallback func([]byte) ([]byte, error)
 
 // ConverseAsClient conducts an authentication exchange as a client.
 func ConverseAsClient(ctx context.Context, mech ClientMech, incoming, outgoing chan []byte) error {
-	fmt.Println("starting client")
 	mechName, response, err := mech.Start(ctx)
 	if err != nil {
 		return newError(fmt.Sprintf("sasl mechanism %s: unable to start exchange", mechName), err)
@@ -75,7 +74,6 @@ func ConverseAsClient(ctx context.Context, mech ClientMech, incoming, outgoing c
 
 	var challenge []byte
 	for {
-		fmt.Println("client sending: ", response)
 		select {
 		case outgoing <- response:
 		case <-ctx.Done():
@@ -88,7 +86,6 @@ func ConverseAsClient(ctx context.Context, mech ClientMech, incoming, outgoing c
 			return newError(fmt.Sprintf("sasl mechanism %s: failed to receive challenge", mechName), ctx.Err())
 		}
 
-		fmt.Println("client received: ", challenge)
 		response, err = mech.Next(ctx, challenge)
 		if err != nil {
 			return newError(fmt.Sprintf("sasl mechanism %s: client failed to provide response", mechName), err)
@@ -98,22 +95,18 @@ func ConverseAsClient(ctx context.Context, mech ClientMech, incoming, outgoing c
 			break
 		}
 	}
-	fmt.Println("client complete")
 
 	return nil
 }
 
 // ConverseAsServer conducts an authentication exchange as a server.
 func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, incoming, outgoing chan []byte) error {
-	fmt.Println("starting server")
-	fmt.Println("server received: ", response)
 	mechName, challenge, err := mech.Start(ctx, response)
 	if err != nil {
 		return newError(fmt.Sprintf("sasl mechanism %s: unable to start exchange", mechName), err)
 	}
 
 	for {
-		fmt.Println("server sending: ", challenge)
 		select {
 		case outgoing <- challenge:
 		case <-ctx.Done():
@@ -130,13 +123,11 @@ func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, inc
 			return newError(fmt.Sprintf("sasl mechanism %s: failed to receive response", mechName), ctx.Err())
 		}
 
-		fmt.Println("server received: ", response)
 		challenge, err = mech.Next(ctx, response)
 		if err != nil {
 			return newError(fmt.Sprintf("sasl mechanism %s: server failed to provide challenge", mechName), err)
 		}
 	}
-	fmt.Println("server complete")
 
 	return nil
 }

@@ -7,7 +7,7 @@ import (
 )
 
 // Plain mechanism name.
-const Plain = "plain"
+const Plain = "PLAIN"
 
 // NewPlainClientMech creates a ClientMech to act as the client side of
 // RFC4616 (https://tools.ietf.org/html/rfc4616).
@@ -87,9 +87,7 @@ func (m *plainServerMech) Next(ctx context.Context, response []byte) ([]byte, er
 	username := string(parts[1])
 	password := string(parts[2])
 
-	err := m.verifier(ctx, authz, username, password)
-
-	return nil, err
+	return nil, m.verifier(ctx, authz, username, password)
 }
 
 func (m *plainServerMech) Completed() bool {
