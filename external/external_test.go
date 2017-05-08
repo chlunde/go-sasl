@@ -1,4 +1,4 @@
-package sasl_test
+package external_test
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/craiggwilson/go-sasl"
+	"github.com/craiggwilson/go-sasl/external"
+	"github.com/craiggwilson/go-sasl/internal/testhelpers"
 )
 
 func TestExternalMech(t *testing.T) {
@@ -31,12 +32,12 @@ func TestExternalMech(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.authz), func(t *testing.T) {
-			runClientServerTest(t, &clientServerTest{
-				client:    sasl.NewExternalClientMech(test.authz),
-				server:    sasl.NewExternalServerMech(verifier),
-				clientErr: test.clientErr,
-				serverErr: test.serverErr,
-			})
+			testhelpers.RunClientServerTest(t,
+				external.NewClientMech(test.authz),
+				external.NewServerMech(verifier),
+				test.clientErr,
+				test.serverErr,
+			)
 		})
 	}
 }

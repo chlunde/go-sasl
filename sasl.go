@@ -1,11 +1,10 @@
-// Package sasl implements RFC4422(https://tools.ietf.org/html/rfc4422). It provides
-// high-level methods to conduct an authentication exchange as both a server and as
-// a client, and provides implementations of different sasl mechanisms to use.
+// Package sasl implements the framework for RFC4422(https://tools.ietf.org/html/rfc4422).
+// It provides high-level methods to conduct an authentication exchange as both a server
+// and as a client. Mechanism implementations are defined in other packages.
 package sasl
 
 import (
 	"context"
-	"errors"
 	"fmt"
 )
 
@@ -58,6 +57,15 @@ func ConverseAsClient(ctx context.Context, mech ClientMech, incoming <-chan []by
 
 		response, err = mech.Next(ctx, challenge)
 		if err != nil {
+			if response != nil {
+				// some mechanisms communicate errors via the mechanism. In these cases,
+				// we can expect an error as well as an non-nil response.
+				select {
+				case outgoing <- response:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
 			return newError(fmt.Sprintf("sasl mechanism %s: client failed to provide response", mechName), err)
 		}
 
@@ -95,6 +103,15 @@ func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, inc
 
 		challenge, err = mech.Next(ctx, response)
 		if err != nil {
+			if challenge != nil {
+				// some mechanisms communicate errors via the mechanism. In these cases,
+				// we can expect an error as well as an non-nil challenge.
+				select {
+				case outgoing <- response:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
 			return newError(fmt.Sprintf("sasl mechanism %s: server failed to provide challenge", mechName), err)
 		}
 	}
@@ -108,9 +125,6 @@ func newError(msg string, inner error) *Error {
 		Inner: inner,
 	}
 }
-
-var errUnexpectedChallenge = errors.New("unexpected challenge")
-var errUnexpectedResponse = errors.New("unexpected response")
 
 // Error is always the type of error returned from ConverseAsClient and
 // ConverseAsServer.

@@ -1,4 +1,4 @@
-package sasl_test
+package plain_test
 
 import (
 	"context"
@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/craiggwilson/go-sasl"
+	"github.com/craiggwilson/go-sasl/internal/testhelpers"
+	"github.com/craiggwilson/go-sasl/plain"
 )
 
 func TestPlainMech(t *testing.T) {
@@ -38,12 +39,12 @@ func TestPlainMech(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s:%s:%s", test.authz, test.username, test.password), func(t *testing.T) {
-			runClientServerTest(t, &clientServerTest{
-				client:    sasl.NewPlainClientMech(test.authz, test.username, test.password),
-				server:    sasl.NewPlainServerMech(verifier),
-				clientErr: test.clientErr,
-				serverErr: test.serverErr,
-			})
+			testhelpers.RunClientServerTest(t,
+				plain.NewClientMech(test.authz, test.username, test.password),
+				plain.NewServerMech(verifier),
+				test.clientErr,
+				test.serverErr,
+			)
 		})
 	}
 }

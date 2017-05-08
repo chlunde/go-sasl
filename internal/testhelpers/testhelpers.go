@@ -1,4 +1,4 @@
-package sasl_test
+package testhelpers
 
 import (
 	"context"
@@ -7,17 +7,11 @@ import (
 	"github.com/craiggwilson/go-sasl"
 )
 
-type clientServerTest struct {
-	client    sasl.ClientMech
-	server    sasl.ServerMech
-	clientErr string
-	serverErr string
-}
-
-func runClientServerTest(t *testing.T, test *clientServerTest) {
-	clientErr, serverErr := runConversation(test.client, test.server)
-	verifyError(t, "client", test.clientErr, clientErr)
-	verifyError(t, "server", test.serverErr, serverErr)
+// RunClientServerTest executes the client and the server together.
+func RunClientServerTest(t *testing.T, client sasl.ClientMech, server sasl.ServerMech, expectedClientErr, expectedServerErr string) {
+	clientErr, serverErr := runConversation(client, server)
+	verifyError(t, "client", expectedClientErr, clientErr)
+	verifyError(t, "server", expectedServerErr, serverErr)
 }
 
 func runConversation(client sasl.ClientMech, server sasl.ServerMech) (error, error) {

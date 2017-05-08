@@ -1,14 +1,14 @@
-package sasl_test
+package anonymous_test
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 
-	"strings"
-
-	"github.com/craiggwilson/go-sasl"
+	"github.com/craiggwilson/go-sasl/anonymous"
+	"github.com/craiggwilson/go-sasl/internal/testhelpers"
 )
 
 func TestAnonymousMech(t *testing.T) {
@@ -33,12 +33,12 @@ func TestAnonymousMech(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("%s", test.trace), func(t *testing.T) {
-			runClientServerTest(t, &clientServerTest{
-				client:    sasl.NewAnonymousClientMech(test.trace),
-				server:    sasl.NewAnonymousServerMech(verifier),
-				clientErr: test.clientErr,
-				serverErr: test.serverErr,
-			})
+			testhelpers.RunClientServerTest(t,
+				anonymous.NewClientMech(test.trace),
+				anonymous.NewServerMech(verifier),
+				test.clientErr,
+				test.serverErr,
+			)
 		})
 	}
 }
