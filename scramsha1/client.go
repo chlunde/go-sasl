@@ -3,51 +3,33 @@ package scramsha1
 import (
 	"bytes"
 	"context"
-	"crypto/sha1"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
-
-	"golang.org/x/crypto/pbkdf2"
 )
 
 var usernameSanitizer = strings.NewReplacer("=", "=3D", ",", "=2D")
 
-type ClientConfig struct {
-	NonceLen    uint16
-	NonceSource io.Reader
-}
-
 // NewClientMech creates a new ClientMech.
-func NewClientMech(authz, username, password string, cfg *ClientConfig) *ClientMech {
-
-	if cfg == nil {
-		cfg = &ClientConfig{}
-	}
-
-	if cfg.NonceLen == 0 {
-		cfg.NonceLen = 16
-	}
-	if cfg.NonceSource == nil {
-		// TODO: get default nonce source
-	}
-
+func NewClientMech(authz, username, password string, nonceLen uint16, nonceSource io.Reader) *ClientMech {
 	return &ClientMech{
-		authz:    authz,
-		username: username,
-		password: password,
-		cfg:      cfg,
+		authz:       authz,
+		username:    username,
+		password:    password,
+		nonceLen:    nonceLen,
+		nonceSource: nonceSource,
 	}
 }
 
 // ClientMech implements the client side portion of SCRAM-SHA-1.
 type ClientMech struct {
-	authz    string
-	username string
-	password string
-	cfg      *ClientConfig
+	authz       string
+	username    string
+	password    string
+	nonceLen    uint16
+	nonceSource io.Reader
 
 	// state
 	step                   uint8
@@ -57,24 +39,18 @@ type ClientMech struct {
 }
 
 // Start initializes the mechanism and begins the authentication exchange.
-func (m *ClientMech) Start() (string, []byte, error) {
-	m.clientNonce = make([]byte, m.cfg.NonceLen)
-	tn := uint16(0)
-	for tn < m.cfg.NonceLen {
-		n, err := m.cfg.NonceSource.Read(m.clientNonce)
-		if err != nil {
-			return ScramSha1, nil, fmt.Errorf("could not generate nonce of length %d: %v", m.cfg.NonceLen, err)
-		}
-		tn += uint16(n)
+func (m *ClientMech) Start(_ context.Context) (string, []byte, error) {
+	var err error
+	m.clientNonce, err = generateNonce(m.nonceLen, m.nonceSource)
+	if err != nil {
+		return ScramSha1, nil, fmt.Errorf("unable to generate nonce of length %d: %v", m.nonceLen, err)
 	}
 
 	gs2header := "n,"
-
 	if m.authz != "" {
 		gs2header += "a=" + m.authz
-	} else {
-		gs2header += ","
 	}
+	gs2header += ","
 
 	m.clientFirstMessageBare = "n=" + usernameSanitizer.Replace(m.username) + ",r=" + string(m.clientNonce)
 
@@ -92,7 +68,7 @@ func (m *ClientMech) Next(ctx context.Context, challenge []byte) ([]byte, error)
 	case 2:
 		return m.step2(ctx, challenge)
 	default:
-		return nil, fmt.Errorf("unexpected server challenge")
+		return nil, fmt.Errorf("unexpected challenge")
 	}
 }
 
@@ -140,20 +116,14 @@ func (m *ClientMech) step1(ctx context.Context, challenge []byte) ([]byte, error
 	authMessage := m.clientFirstMessageBare + "," + string(challenge) + "," + clientFinalMessageWithoutProof
 
 	// TODO: it's possible to cache the stored key and server key
-	// TODO: implement pbkdf2 locally to not need a dependency
-	saltedPassword := pbkdf2.Key([]byte(m.password), s, i, 20, sha1.New)
-	serverKey := hmac(saltedPassword, "Server Key")
-	clientKey := hmac(saltedPassword, "Client Key")
-	storedKey := h(clientKey)
+	clientKey, storedKey, serverKey := GenerateKeys(m.password, s, uint16(i))
 
 	clientSignature := hmac(storedKey, authMessage)
 	m.serverSignature = hmac(serverKey, authMessage)
 
 	clientProof := xor(clientKey, clientSignature)
 	proof := "p=" + base64.StdEncoding.EncodeToString(clientProof)
-
 	clientFinalMessage := clientFinalMessageWithoutProof + "," + proof
-
 	return []byte(clientFinalMessage), nil
 }
 

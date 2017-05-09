@@ -107,7 +107,7 @@ func ConverseAsServer(ctx context.Context, mech ServerMech, response []byte, inc
 				// some mechanisms communicate errors via the mechanism. In these cases,
 				// we can expect an error as well as an non-nil challenge.
 				select {
-				case outgoing <- response:
+				case outgoing <- challenge:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
