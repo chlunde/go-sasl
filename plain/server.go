@@ -7,20 +7,29 @@ import (
 	"fmt"
 )
 
-// Verifier verifies the client's credentials.
-type Verifier func(ctx context.Context, authz, username, password string) error
+// AuthzVerifier verifies the client's authorization identity.
+type AuthzVerifier func(ctx context.Context, username, authz string) error
+
+// UserPassVerifier verifies the client's credentials.
+type UserPassVerifier func(ctx context.Context, username, password string) error
 
 // NewServerMech creates a ServerMech to act as the server side of
 // RFC4616 (https://tools.ietf.org/html/rfc4616).
-func NewServerMech(verifier Verifier) *ServerMech {
+func NewServerMech(userPassVerifier UserPassVerifier, authzVerifier AuthzVerifier) *ServerMech {
 	return &ServerMech{
-		verifier: verifier,
+		userPassVerifier: userPassVerifier,
+		authzVerifier:    authzVerifier,
 	}
 }
 
 // ServerMech implements the server side portion of ANONYMOUS.
 type ServerMech struct {
-	verifier Verifier
+	Authz    string
+	Username string
+	Password string
+
+	authzVerifier    AuthzVerifier
+	userPassVerifier UserPassVerifier
 
 	// state
 	done bool
@@ -50,11 +59,19 @@ func (m *ServerMech) Next(ctx context.Context, response []byte) ([]byte, error) 
 		return nil, errors.New("invalid response")
 	}
 
-	authz := string(parts[0])
-	username := string(parts[1])
-	password := string(parts[2])
+	m.Authz = string(parts[0])
+	m.Username = string(parts[1])
+	m.Password = string(parts[2])
 
-	return nil, m.verifier(ctx, authz, username, password)
+	var err error
+	if m.userPassVerifier != nil {
+		err = m.userPassVerifier(ctx, m.Username, m.Password)
+	}
+	if err == nil && m.authzVerifier != nil {
+		err = m.authzVerifier(ctx, m.Username, m.Authz)
+	}
+
+	return []byte{}, err
 }
 
 // Completed indicates if the authentication exchange is complete from

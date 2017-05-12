@@ -34,7 +34,7 @@ func generateNonce(length uint16, source io.Reader) ([]byte, error) {
 		}
 
 		for i := 0; i < n; i++ {
-			if nonceTemp[i] != 9 && nonceTemp[i] != 10 && (nonceTemp[i] < 32 || nonceTemp[i] >= 127) {
+			if nonceTemp[i] < 32 || nonceTemp[i] >= 127 || nonceTemp[i] == 44 {
 				continue
 			}
 			nonce[idx] = nonceTemp[i]

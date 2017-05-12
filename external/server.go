@@ -5,11 +5,11 @@ import (
 	"fmt"
 )
 
-// Verifier verifies the client's authorization identity.
-type Verifier func(ctx context.Context, authz string) error
+// AuthzVerifier verifies the client's authorization identity.
+type AuthzVerifier func(ctx context.Context, authz string) error
 
 // NewServerMech creates a ServerMech.
-func NewServerMech(verifier Verifier) *ServerMech {
+func NewServerMech(verifier AuthzVerifier) *ServerMech {
 	return &ServerMech{
 		verifier: verifier,
 	}
@@ -17,7 +17,9 @@ func NewServerMech(verifier Verifier) *ServerMech {
 
 // ServerMech implements the server side portion of ANONYMOUS.
 type ServerMech struct {
-	verifier Verifier
+	Authz string
+
+	verifier AuthzVerifier
 
 	// state
 	done bool
@@ -42,7 +44,14 @@ func (m *ServerMech) Next(ctx context.Context, response []byte) ([]byte, error) 
 
 	m.done = true
 
-	return nil, m.verifier(ctx, string(response))
+	m.Authz = string(response)
+
+	var err error
+	if m.verifier != nil {
+		err = m.verifier(ctx, m.Authz)
+	}
+
+	return []byte{}, err
 }
 
 // Completed indicates if the authentication exchange is complete from

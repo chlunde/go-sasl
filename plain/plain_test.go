@@ -12,16 +12,18 @@ import (
 
 func TestPlainMech(t *testing.T) {
 
-	verifier := func(_ context.Context, authz, username, password string) error {
-		if username == "jack" && password == "mcjack" {
-			if authz == "" || authz == "jane" {
-				return nil
-			}
-
-			return fmt.Errorf("cannot impersonate '%s'", authz)
+	userPassVerifier := func(_ context.Context, username, password string) error {
+		if username != "jack" && password != "mcjack" {
+			return errors.New("invalid username or password")
 		}
+		return nil
+	}
 
-		return errors.New("invalid username or password")
+	authzVerifier := func(_ context.Context, username, authz string) error {
+		if authz != "" && authz != "jane" {
+			return fmt.Errorf("cannot impersonate %s", authz)
+		}
+		return nil
 	}
 
 	tests := []struct {
@@ -41,7 +43,7 @@ func TestPlainMech(t *testing.T) {
 		t.Run(fmt.Sprintf("%s:%s:%s", test.authz, test.username, test.password), func(t *testing.T) {
 			testhelpers.RunClientServerTest(t,
 				plain.NewClientMech(test.authz, test.username, test.password),
-				plain.NewServerMech(verifier),
+				plain.NewServerMech(userPassVerifier, authzVerifier),
 				test.clientErr,
 				test.serverErr,
 			)

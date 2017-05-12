@@ -13,7 +13,6 @@ import (
 func TestExternalMech(t *testing.T) {
 
 	verifier := func(_ context.Context, authz string) error {
-
 		if authz == "jack" {
 			return nil
 		}

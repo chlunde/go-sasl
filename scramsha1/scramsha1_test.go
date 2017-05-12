@@ -22,6 +22,13 @@ func TestScramSha1Mech(t *testing.T) {
 		}, nil
 	}
 
+	authzVerifier := func(_ context.Context, username, authz string) error {
+		if authz != "" && authz != "jane" {
+			return fmt.Errorf("cannot impersonate %s", authz)
+		}
+		return nil
+	}
+
 	tests := []struct {
 		authz     string
 		username  string
@@ -32,6 +39,7 @@ func TestScramSha1Mech(t *testing.T) {
 		{"", "jack", "password", "", ""},
 		{"jane", "jack", "password", "", ""},
 		{"", "jack", "wrong", "sasl mechanism SCRAM-SHA-1: client failed to provide response: other-error", "sasl mechanism SCRAM-SHA-1: server failed to provide challenge: invalid response: client key mismatch"},
+		{"joe", "jack", "password", "sasl mechanism SCRAM-SHA-1: client failed to provide response: other-error", "sasl mechanism SCRAM-SHA-1: server failed to provide challenge: jack is not authorized to act as joe"},
 	}
 
 	// using math/rand to make the nonce's predicatable. Actual implementation should use crypto/rand.
@@ -41,7 +49,7 @@ func TestScramSha1Mech(t *testing.T) {
 		t.Run(fmt.Sprintf("%s:%s:%s", test.authz, test.username, test.password), func(t *testing.T) {
 			testhelpers.RunClientServerTest(t,
 				scramsha1.NewClientMech(test.authz, test.username, test.password, 16, mr),
-				scramsha1.NewServerMech(storedUserProvider, 16, mr),
+				scramsha1.NewServerMech(storedUserProvider, authzVerifier, 16, mr),
 				test.clientErr,
 				test.serverErr,
 			)

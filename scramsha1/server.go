@@ -9,10 +9,14 @@ import (
 	"strconv"
 )
 
+// AuthzVerifier verifies the client's authorization identity.
+type AuthzVerifier func(ctx context.Context, username, authz string) error
+
 // NewServerMech creates a new ServerMech.
-func NewServerMech(storedUserProvider StoredUserProvider, nonceLen uint16, nonceSource io.Reader) *ServerMech {
+func NewServerMech(storedUserProvider StoredUserProvider, verifier AuthzVerifier, nonceLen uint16, nonceSource io.Reader) *ServerMech {
 	return &ServerMech{
 		storedUserProvider: storedUserProvider,
+		verifier:           verifier,
 		nonceLen:           nonceLen,
 		nonceSource:        nonceSource,
 	}
@@ -31,9 +35,10 @@ type StoredUserProvider func(ctx context.Context, username string) (*StoredUser,
 
 // ServerMech implements the server side portion of SCRAM-SHA-1.
 type ServerMech struct {
-	Username string
 	Authz    string
+	Username string
 
+	verifier           AuthzVerifier
 	storedUserProvider StoredUserProvider
 	nonceLen           uint16
 	nonceSource        io.Reader
@@ -116,7 +121,6 @@ func (m *ServerMech) step1(ctx context.Context, response []byte) ([]byte, error)
 	}
 
 	m.nonce = "r=" + string(clientNonce) + string(serverNonce)
-	fmt.Println(m.nonce)
 	salt := "s=" + base64.StdEncoding.EncodeToString(m.storedUser.Salt)
 	iterationCount := "i=" + strconv.Itoa(int(m.storedUser.Iterations))
 
@@ -171,6 +175,12 @@ func (m *ServerMech) step2(ctx context.Context, response []byte) ([]byte, error)
 
 	if !bytes.Equal(storedKey, m.storedUser.StoredKey) {
 		return e, fmt.Errorf("invalid response: client key mismatch")
+	}
+
+	if m.verifier != nil {
+		if err = m.verifier(ctx, m.Username, m.Authz); err != nil {
+			return e, fmt.Errorf("%s is not authorized to act as %s", m.Username, m.Authz)
+		}
 	}
 
 	serverSignature := hmac(m.storedUser.ServerKey, authMessage)

@@ -13,9 +13,9 @@ import (
 
 func TestAnonymousMech(t *testing.T) {
 
-	verifier := func(_ context.Context, trace string) error {
+	verifier := func(_ context.Context, authz string) error {
 
-		if strings.Contains(trace, "@") {
+		if strings.Contains(authz, "@") {
 			return nil
 		}
 
@@ -23,7 +23,7 @@ func TestAnonymousMech(t *testing.T) {
 	}
 
 	tests := []struct {
-		trace     string
+		authz     string
 		clientErr string
 		serverErr string
 	}{
@@ -32,9 +32,9 @@ func TestAnonymousMech(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(fmt.Sprintf("%s", test.trace), func(t *testing.T) {
+		t.Run(fmt.Sprintf("%s", test.authz), func(t *testing.T) {
 			testhelpers.RunClientServerTest(t,
-				anonymous.NewClientMech(test.trace),
+				anonymous.NewClientMech(test.authz),
 				anonymous.NewServerMech(verifier),
 				test.clientErr,
 				test.serverErr,

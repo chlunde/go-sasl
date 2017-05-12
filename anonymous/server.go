@@ -5,12 +5,11 @@ import (
 	"fmt"
 )
 
-// Verifier is a callback to verify that the trace identifier is
-// ok to use.
-type Verifier func(ctx context.Context, trace string) error
+// AuthzVerifier verifies the client's authorization identity.
+type AuthzVerifier func(ctx context.Context, authz string) error
 
 // NewServerMech creates a ServerMech.
-func NewServerMech(verifier Verifier) *ServerMech {
+func NewServerMech(verifier AuthzVerifier) *ServerMech {
 	return &ServerMech{
 		verifier: verifier,
 	}
@@ -18,7 +17,9 @@ func NewServerMech(verifier Verifier) *ServerMech {
 
 // ServerMech implements the server side portion of ANONYMOUS.
 type ServerMech struct {
-	verifier Verifier
+	Authz string
+
+	verifier AuthzVerifier
 	done     bool
 }
 
@@ -41,7 +42,14 @@ func (m *ServerMech) Next(ctx context.Context, response []byte) ([]byte, error) 
 
 	m.done = true
 
-	return nil, m.verifier(ctx, string(response))
+	m.Authz = string(response)
+
+	var err error
+	if m.verifier != nil {
+		err = m.verifier(ctx, m.Authz)
+	}
+
+	return []byte{}, err
 }
 
 // Completed indicates if the authentication exchange is complete from
