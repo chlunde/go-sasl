@@ -43,7 +43,7 @@ func (m *ClientMech) Start(_ context.Context) (string, []byte, error) {
 	var err error
 	m.clientNonce, err = generateNonce(m.nonceLen, m.nonceSource)
 	if err != nil {
-		return ScramSha1, nil, fmt.Errorf("unable to generate nonce of length %d: %v", m.nonceLen, err)
+		return MechName, nil, fmt.Errorf("unable to generate nonce of length %d: %v", m.nonceLen, err)
 	}
 
 	gs2header := "n,"
@@ -56,7 +56,7 @@ func (m *ClientMech) Start(_ context.Context) (string, []byte, error) {
 
 	clientFirstMessage := gs2header + m.clientFirstMessageBare
 
-	return ScramSha1, []byte(clientFirstMessage), nil
+	return MechName, []byte(clientFirstMessage), nil
 }
 
 // Next continues the exchange.

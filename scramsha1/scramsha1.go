@@ -11,7 +11,7 @@ import (
 )
 
 // ScramSha1 mechanism name.
-const ScramSha1 = "SCRAM-SHA-1"
+const MechName = "SCRAM-SHA-1"
 
 // GenerateKeys generates all the keys needed for the mechanism.
 func GenerateKeys(password string, salt []byte, iterations uint16) (clientKey []byte, storedKey []byte, serverKey []byte) {

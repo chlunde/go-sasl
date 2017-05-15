@@ -55,11 +55,11 @@ type ServerMech struct {
 // Start initializes the mechanism and begins the authentication exchange.
 func (m *ServerMech) Start(ctx context.Context, initialResponse []byte) (string, []byte, error) {
 	if len(initialResponse) == 0 {
-		return ScramSha1, nil, nil
+		return MechName, nil, nil
 	}
 
 	challenge, err := m.Next(ctx, initialResponse)
-	return ScramSha1, challenge, err
+	return MechName, challenge, err
 }
 
 // Next continues the exchange.
