@@ -27,6 +27,9 @@ func (c *Client) Auth(ctx context.Context, state interface{}, mechName string, i
 	}
 
 	mech := factory(state)
+	if closer, ok := mech.(MechCloser); ok {
+		defer closer.Close()
+	}
 
 	return ConverseAsClient(ctx, mech, incoming, outgoing)
 }

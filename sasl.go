@@ -34,6 +34,11 @@ type ServerMech interface {
 	Completed() bool
 }
 
+// MechCloser indicates that a client or server mechanism needs closing.
+type MechCloser interface {
+	Close()
+}
+
 // ConverseAsClient conducts an authentication exchange as a client.
 func ConverseAsClient(ctx context.Context, mech ClientMech, incoming <-chan []byte, outgoing chan<- []byte) error {
 	mechName, response, err := mech.Start(ctx)

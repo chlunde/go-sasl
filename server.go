@@ -27,6 +27,9 @@ func (s *Server) Auth(ctx context.Context, state interface{}, mechName string, r
 	}
 
 	mech := factory(state)
+	if closer, ok := mech.(MechCloser); ok {
+		defer closer.Close()
+	}
 
 	return ConverseAsServer(ctx, mech, response, incoming, outgoing)
 }
